@@ -1,0 +1,479 @@
+BCD = read.csv("BCD.txt",header = TRUE)
+BCP=read.csv("BCP.txt", header = TRUE)
+dim(BCP)
+names(BCP)=c("ID.Number", "Outcome", "Time", 1:32)
+head(BCP)
+names(BCD)=c("ID.Number", "Diagnosis", 33:62)
+dim(BCD)
+head(BCD)
+
+table(BCP$ID.Number %in% BCD$ID.Number)
+table(BCD$ID.Number %in% BCP$ID.Number)
+
+head(BCP$ID.Number)
+head(BCD$ID.Number)
+dim(BCD)
+dim(BCP)
+
+?merge
+BC=merge(BCD, BCP, by.x='ID.Number', by.y='ID.Number', all.x=T)
+head(BC)
+a=(na.omit(BC))
+dim(BC)
+dim(a)
+names(BC)=c("ID", "Diagnosis", "m.radius","m.texture", "m.perimeter", "m.area", 
+            "m.smoothness", "m.compactness", "m.concavity", "m.concavePoints", "m.symmetry", 
+            "m.fractalDim", "SE.radius", "SE.texture", "SE.perimeter", "SE.area", 
+            "SE.smoothness", "SE.compactness", "SE.concavity", "SE.concavePoints", "SE.symmetry", 
+            "SE.fractalDim", "w.radius","w.texture", "w.perimeter", "w.area", 
+            "w.smoothness", "w.compactness", "w.concavity", "w.concavePoints", "w.symmetry", 
+            "w.fractalDim", "Outcome", "Time", "m.radius","m.texture", "m.perimeter", "m.area", 
+            "m.smoothness", "m.compactness", "m.concavity", "m.concavePoints", "m.symmetry", 
+            "m.fractalDim", "SE.radius", "SE.texture", "SE.perimeter", "SE.area", 
+            "SE.smoothness", "SE.compactness", "SE.concavity", "SE.concavePoints", "SE.symmetry", 
+            "SE.fractalDim", "w.radius","w.texture", "w.perimeter", "w.area", 
+            "w.smoothness", "w.compactness", "w.concavity", "w.concavePoints", "w.symmetry", 
+            "w.fractalDim", "TumorSize", "LymphNode")  
+head(BC)
+head(a)
+names(a)=c("ID", "Diagnosis", "m.radius","m.texture", "m.perimeter", "m.area", 
+           "m.smoothness", "m.compactness", "m.concavity", "m.concavePoints", "m.symmetry", 
+           "m.fractalDim", "SE.radius", "SE.texture", "SE.perimeter", "SE.area", 
+           "SE.smoothness", "SE.compactness", "SE.concavity", "SE.concavePoints", "SE.symmetry", 
+           "SE.fractalDim", "w.radius","w.texture", "w.perimeter", "w.area", 
+           "w.smoothness", "w.compactness", "w.concavity", "w.concavePoints", "w.symmetry", 
+           "w.fractalDim", "Outcome", "Time", "m.radius","m.texture", "m.perimeter", "m.area", 
+           "m.smoothness", "m.compactness", "m.concavity", "m.concavePoints", "m.symmetry", 
+           "m.fractalDim", "SE.radius", "SE.texture", "SE.perimeter", "SE.area", 
+           "SE.smoothness", "SE.compactness", "SE.concavity", "SE.concavePoints", "SE.symmetry", 
+           "SE.fractalDim", "w.radius","w.texture", "w.perimeter", "w.area", 
+           "w.smoothness", "w.compactness", "w.concavity", "w.concavePoints", "w.symmetry", 
+           "w.fractalDim", "TumorSize", "LymphNode")
+table(a[,5]==a[,37])
+
+truth <- (a[,5] == a[,37])
+
+new.a <- a[truth,]
+
+a.new <- new.a[,-(33:66)]
+
+new.a <- new.a[,33:66]
+
+benign <- BCD[BCD$Diagnosis == 'B',]
+
+names(benign) <- c("ID", "Diagnosis", "m.radius","m.texture", "m.perimeter", "m.area", 
+                   "m.smoothness", "m.compactness", "m.concavity", "m.concavePoints", "m.symmetry", 
+                   "m.fractalDim", "SE.radius", "SE.texture", "SE.perimeter", "SE.area", 
+                   "SE.smoothness", "SE.compactness", "SE.concavity", "SE.concavePoints", "SE.symmetry", 
+                   "SE.fractalDim", "w.radius","w.texture", "w.perimeter", "w.area", 
+                   "w.smoothness", "w.compactness", "w.concavity", "w.concavePoints", "w.symmetry", 
+                   "w.fractalDim")
+
+table(is.na(benign))
+
+#prognosis is a data frame for the recurring/nonrecurring response
+prognosis <- new.a
+
+#diagnosis.orig is a data frame for the malignant/benign response
+diagnosis.orig <- rbind(benign,a.new)
+
+library('car')
+
+splitdf <- function(dataframe, seed=NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  index <- 1:nrow(dataframe)
+  trainindex <- sample(index, trunc(length(index)/2))
+  trainset <- dataframe[trainindex, ]
+  testset <- dataframe[-trainindex, ]
+  list(trainset=trainset,testset=testset)
+} #splitdf
+
+#apply the function
+splits <- splitdf(diagnosis.orig, seed=808)
+#it returns a list - two data frames called trainset and testset
+
+# save the training and testing sets as data frames
+
+#DIAGNOSIS IS THE TRAINING SET FOR THE DIAGNOSIS DATA
+diagnosis <- splits$trainset
+#D.TEST IS THE TEST SET FOR THE DIAGNOSIS DATA
+d.test <- splits$testset
+
+table((diagnosis)==(d.test))
+
+
+
+############DIAGNOSTICS on DATA##################
+
+best_grid = function(m) 
+  # This function finds the best grid for
+  # displaying multiple plots in one window.
+{
+  m = sqrt(m)
+  grid = c(floor(m), ceiling(m))
+  if (prod(grid) < m^2)
+    grid = grid[c(2, 2)]
+  
+  return(grid)
+} #best_grid function
+
+
+show_qq = function(data) 
+  # This function shows normal Q-Q plots for
+  # multivariate data.
+{
+  p = ncol(data)
+  
+  x11()
+  par(mfrow = best_grid(p), oma = c(0, 0, 2, 0))
+  for (j in seq_len(p)) {
+    qqnorm(data[, j], 
+           main = colnames(data)[[j]])
+    qqline(data[, j])
+  }
+  mtext('Normal Q-Q Plots', outer = TRUE)
+  par(mfrow = c(1, 1), oma = rep(0, 4))
+}#show_qq function
+
+
+show_association = function(data)
+  #This function shows the assosciation between
+  #the mean variable and the 'worst' variable
+{
+  p = 10
+  
+  x11()
+  par(mfrow = best_grid(p), oma = c(0, 0, 2, 0))
+  for (j in 3:12) {
+    
+    plot(diagnosis[,j] ~ diagnosis[,(j+20)], 
+         ylab = names(diagnosis)[j] , xlab = names(diagnosis[(j+20)]),
+         main = paste(names(diagnosis)[j],names(diagnosis[(j+20)]),
+                      sep = ' by '))
+    abline(lsfit(diagnosis[,(j+20)],diagnosis[,j] ))
+    
+  }
+  mtext('Linear Associations of Mean and Worst Variables', outer = TRUE)
+  par(mfrow = c(1, 1), oma = rep(0, 4))
+  
+}#show_association
+
+
+show_qq(diagnosis[,3:12])
+show_qq(diagnosis[,13:22])
+show_qq(diagnosis[,23:32])
+
+show_association(diagnosis)
+
+x11()
+HZ.test(diagnosis[,3:12])
+
+x11()
+HZ.test(diagnosis[,13:22])
+
+x11()
+HZ.test(diagnosis[,23:32])
+
+x11()
+HZ.test(diagnosis[,3:32])
+
+
+#MATRIX SCATTERPLOT
+#To see which variables are more interesting to plot in matrix plot
+cor(diagnosis[,3:12])
+
+png('MatrixPlot', 900, 900)
+pairs(diagnosis[c('m.texture', 'm.area', 'm.smoothness',
+                  'm.concavity', 'm.symmetry', 'm.fractalDim')])
+dev.off()
+
+###Normalize Data####
+d <- diagnosis[,3:32]
+
+#save the true diagnosis
+
+diag.true <- diagnosis[,2]
+
+normalize <- function(x) {
+  
+  
+  col.ave <- colSums(x)/dim(x)[1]
+  #col.ave
+  
+  col.sd <- apply(d, 2, sd)
+  #col.sd
+  
+  new.d <- t(as.matrix(x))
+  
+  
+  normal.d <- (new.d - col.ave)/col.sd
+  
+  normal.d <- t(normal.d)
+  
+  
+  return(as.data.frame(normal.d))
+  
+}
+
+normal.d <- normalize(d)
+#normal.d has the normalized diagnosis data with the true diagnosis column removed
+#so we can compute PCs
+
+
+## COVARIANCE MATRIX COMPARISON
+new.d <- cbind(diag.true,normal.d)
+
+ben <- new.d[new.d$diag.true == 'B',2:31]
+ben.label <- new.d[new.d$diag.true == 'B',1]
+
+mal <- new.d[new.d$diag.true == 'M',2:31]
+mal.label <- new.d[new.d$diag.true == 'M',1]
+
+
+
+ben.var <- diag(cov(ben))
+mal.var <- diag(cov(mal))
+
+length(ben.var)
+length(mal.var)
+plot(ben.var~mal.var,
+     main = 'Variance of benign data against variance of malignant data',
+     xlab = 'Variance of Malignant Variables', 
+     ylab = 'Variance of Benign Variables')
+cor(ben.var,mal.var)
+
+
+#PRINCIPLE COMPONENT ANALYSIS
+#code from discussion
+# PCA 
+# Compute the sample covariance of the diagnosis data
+S.diag = cov(normal.d)
+# Get the eigenvalues and vectors of S.diag
+eig = eigen(S.diag,symmetric = TRUE)
+
+
+# How much does each component matter?
+eig$values / sum(eig$values)
+
+var_explained = cumsum(eig$values) / sum(eig$values)
+
+# A scree plot presents this information graphically.
+x11()
+plot(var_explained, type = "b",
+     xlab = "Number Of Principal Components",
+     ylab = "% Variability Explained",
+     main = "Scree Plot", ylim = c(0.90, 1))
+abline(h = 0.98, lty = "dashed")
+#Use k=14 principle components to account for 98% of the variability 
+
+#finds the optimal level of k to use
+k = match ( TRUE , var_explained > 0.98)
+
+#computes principal components of the benign and malignant data
+pc_trB = as.matrix(ben) %*% as.matrix(eig$vectors[,1:k])
+pc_trM = as.matrix(mal) %*% as.matrix(eig$vectors[,1:k])
+
+#Combine PC's of benign and malignant and name them
+PC.diag = rbind(pc_trB,pc_trM)
+colnames(PC.diag) = paste0("PC", 1:14)
+
+#establishing a labels vector that corresponds to final PC vector
+labels_tr = c(as.character(ben.label) ,as.character( mal.label))
+label_tr <- as.factor(labels_tr)
+
+###LINEAR DISCRIMINANT ANALYSIS#####
+# Build the classifier
+
+classify.lda = lda(PC.diag, labels_tr)
+
+# Try the classifier on the training data
+pred_tr.lda = predict (classify.lda , PC.diag)
+conf_tr.lda = table ( Predicted = pred_tr.lda$class , True = labels_tr )
+conf_tr.lda
+
+pred_err_tr.lda = sum ( pred_tr.lda$class != labels_tr ) / length ( labels_tr )
+pred_err_tr.lda
+
+# Try the classifier on test data .
+normal.d.test <- normalize(d.test[,-(1:2)])
+#normalize test data
+pc_te = as.matrix(normal.d.test) %*% as.matrix(eig$vectors[,1:k])
+pred_te.lda = predict(classify.lda , pc_te)
+
+conf_te.lda = table ( Predicted = pred_te.lda$class , True = d.test[,2])
+conf_te.lda
+
+pred_err_te.lda = sum ( pred_te.lda$class != d.test[,2] ) / length(d.test[,2])
+pred_err_te.lda
+
+###QUADRATIC DISCRIMINANT ANALYSIS#####
+# Build the classifier .
+
+classify.qda = qda(PC.diag,labels_tr)
+
+# Try the classifier on training data .
+pred_tr = predict (classify.qda , PC.diag)
+conf_tr = table ( Predicted = pred_tr$class , True = labels_tr )
+pred_err_tr = sum ( pred_tr$class != labels_tr ) / length ( labels_tr )
+
+# Try the classifier on test data .
+pred_te = predict(classify.qda , pc_te)
+
+conf_te = table ( Predicted = pred_te$class , True = d.test[,2])
+conf_te
+
+pred_err_te = sum ( pred_te$class != d.test[,2] ) / length(d.test[,2])
+pred_err_te
+
+###WITH PRIOR PROBABILITIES###
+
+##LINEAR DISCRIMINANT WITH PRIOR PROBABILITIES##
+classify.prior = lda(PC.diag, labels_tr, prior = c(.02,.98))
+# Try the classifier on the training data
+pred_tr.prior = predict (classify.prior , PC.diag)
+conf_tr.prior = table ( Predicted = pred_tr.prior$class , True = labels_tr )
+conf_tr.prior
+
+pred_err_tr.prior = sum ( pred_tr.prior$class != labels_tr ) / length ( labels_tr )
+pred_err_tr.prior
+#Try the classifier on the test data
+pred_te.prior = predict(classify.prior , pc_te)
+
+conf_te.prior = table ( Predicted = pred_te.prior$class , True = d.test[,2])
+conf_te.prior
+
+pred_err_te.prior = sum ( pred_te.prior$class != d.test[,2] ) / length(d.test[,2])
+pred_err_te.prior
+
+##QUADRATIC DISCRIMINANT WITH PRIOR PROBABILITIES##
+# Build the classifier .
+
+classify.qda.prior = qda(PC.diag,labels_tr, prior = c(.02,.98))
+
+# Try the classifier on training data .
+pred_tr.qda.prior = predict (classify.qda.prior , PC.diag)
+conf_tr.qda.prior = table ( Predicted = pred_tr.qda.prior$class ,
+                            True = labels_tr )
+conf_tr.qda.prior
+pred_err_tr.qda.prior = sum ( pred_tr.qda.prior$class != labels_tr ) / length ( labels_tr )
+pred_err_tr.qda.prior
+
+# Try the classifier on test data .
+
+pred_te.qda.prior = predict(classify.qda.prior , pc_te)
+
+conf_te.qda.prior = table ( Predicted = pred_te.qda.prior$class , True = d.test[,2])
+conf_te.qda.prior
+
+pred_err_te.qda.prior = sum ( pred_te.qda.prior$class != d.test[,2] ) / length(d.test[,2])
+pred_err_te.qda.prior
+
+#####################################################
+#CLASSIFICATION TREES#
+
+library(rpart)
+library(ipred)
+prob2 <- bagging(Diagnosis ~ ., data = diagnosis, coob = T,inbagg = 100) 
+
+prob1 <- rpart(Diagnosis ~ ., data = diagnosis)
+
+library(randomForest)
+prob3 <- randomForest(Diagnosis ~ ., data = diagnosis, 
+                      importance = T,inbagg = 1000)
+
+Bagging = predict(prob2, d.test)
+Forest = predict(prob3, d.test)
+Tree = predict(prob1, d.test, type = "class")
+Truth = d.test$Diagnosis
+
+#confusion matrix for single classification tree
+conf_te.tree = table ( Predicted = Tree , True = Truth)
+conf_te.tree
+#error rate for classification tree
+pred_err_tree = sum ( Tree != Truth ) / length(Truth)
+pred_err_tree
+
+#confusion matrix for bagging
+conf_te.bagging = table ( Predicted = Bagging , True = Truth)
+conf_te.bagging
+#error rate for bagging
+pred_err_bagging = sum ( Bagging != Truth ) / length(Truth)
+pred_err_bagging
+
+#confusion matrix for random forest
+conf_te.forest = table ( Predicted = Forest , True = Truth)
+conf_te.forest
+#error rate for random forest
+pred_err_forest = sum ( Forest != Truth ) / length(Truth)
+pred_err_forest
+
+###########
+#K nearest neighbors
+library(caret)
+library(kknn)
+
+PC=cbind(as.data.frame(labels_tr), PC.diag)
+
+#manhattan distance
+model <- train.kknn(as.factor(labels_tr) ~ ., PC, 
+                    distance=1, kmax=15, kernel=c("rectangular"))
+#euclidian distance
+model2 <- train.kknn(as.factor(labels_tr) ~ ., PC, 
+                     distance=2, kmax=15, kernel=c("rectangular"))
+
+plot(1:15, model$MISCLASS[1:15], type='l',
+     ylab='missclassification error',xlab = 'levels of k', 
+     main= 'missclassification errors of k levels-manhattan')
+
+plot(1:15, model2$MISCLASS[1:15], type='l',
+     ylab='missclassification error', xlab = 'levels of k',
+     main= 'missclassification errors of k levels-euclidian')
+
+model2$MISCLASS
+
+lab <- as.factor(labels_tr)
+
+model.knn <- kknn(lab~.,as.data.frame(PC.diag),as.data.frame(PC.diag),
+                  k=3,distance = 2)
+
+#confusion matrix for knn
+conf_te.knn = table ( Predicted = model.knn$fit , True = labels_tr)
+conf_te.knn
+#error rate for knn
+pred_err_knn = sum ( model.knn$fit != labels_tr ) / length(labels_tr)
+pred_err_knn
+
+pc_te.name <- pc_te
+colnames(pc_te.name) = paste0("PC", 1:14)
+
+model.knn.test <- kknn(lab~ .,
+                       as.data.frame(PC.diag),as.data.frame(pc_te.name),
+                       k=5,distance = 1)
+
+
+#confusion matrix for knn
+conf_te.knn = table ( Predicted = model.knn.test$fit , True = Truth)
+conf_te.knn
+#error rate for knn
+pred_err_knn = sum ( model.knn.test$fit != Truth ) / length(Truth)
+pred_err_knn
+
+all.err <- c(pred_err_te.lda,pred_err_te,
+                    pred_err_te.prior,pred_err_tr.qda.prior,
+                    pred_err_tree,pred_err_bagging, pred_err_forest,
+                    pred_err_knn)
+all.err
+
+names.err <- c('LDA','QDA','LDA(prior)','QDA(prior)',
+           'Tree','Bagging','RandomForest','KNN')
+
+names(all.err) = names.err
+
+x11()
+barplot(all.err,main = 'Error rates of Various Models', 
+        ylab = 'Misclassification Rates', ylim = c(0,.20),
+        xlab = 'Models')
+
+
+
+
